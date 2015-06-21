@@ -977,7 +977,7 @@ class Base:
         return rd
 
 class Reader(Base):
-    __slots__ = ['as_rep', 'buf', 'len', 'mrt']
+    __slots__ = ['as_rep', 'buf', 'len', 'mrt', 'f']
 
     def __init__(self, arg):
         Base.__init__(self)
