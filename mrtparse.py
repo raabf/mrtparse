@@ -206,7 +206,7 @@ MSG_T = reverse_defaultdict({
     33:'ISIS_ET',
     48:'OSPFv3',
     49:'OSPFv3_ET',
-}
+})
 
 @enum.unique
 # The field has a length of 16bit. However we only use here 8bit for faster
