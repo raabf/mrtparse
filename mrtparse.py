@@ -25,6 +25,7 @@ from abc import ABCMeta
 import enum
 import gzip, bz2
 import inspect
+import collections
 import signal
 import sys, struct, socket
 signal.signal(signal.SIGPIPE, signal.SIG_DFL)
@@ -143,16 +144,19 @@ class _BaseEnum(int, enum.Enum):
         return ("<" + self.__class__.__name__ + "." + self.name +
                 ": " + repr(self.value) + nice_str_prepend + ">")
 
-# a variable to reverse the keys and values of dictionaries below
-dl = []
+# reverse the keys and values of dictionaries
+def reverse_defaultdict(d):
+    for k in list(d.keys()):
+        d[d[k]] = k
+    d = collections.defaultdict(lambda: "Unknown", d)
+    return d
 
 # AFI Types
 # Assigend by IANA
-AFI_T = {
+AFI_T = reverse_defaultdict({
     1:'IPv4',
     2:'IPv6',
-}
-dl += [AFI_T]
+})
 
 @enum.unique
 class AfiT(_BaseEnum):
@@ -163,13 +167,12 @@ class AfiT(_BaseEnum):
 
 # SAFI Types
 # Assigend by IANA
-SAFI_T = {
+SAFI_T = reverse_defaultdict({
     1:'UNICAST',
     2:'MULTICAST',
     128:'L3VPN_UNICAST',
     129:'L3VPN_MULTICAST',
-}
-dl += [SAFI_T]
+})
 
 @enum.unique
 class SafiT(_BaseEnum):
@@ -182,7 +185,7 @@ class SafiT(_BaseEnum):
 
 # MRT Message Types
 # Defined in RFC6396
-MSG_T = {
+MSG_T = reverse_defaultdict({
     0:'NULL',           # Deprecated in RFC6396
     1:'START',          # Deprecated in RFC6396
     2:'DIE',            # Deprecated in RFC6396
@@ -204,7 +207,6 @@ MSG_T = {
     48:'OSPFv3',
     49:'OSPFv3_ET',
 }
-dl += [MSG_T]
 
 @enum.unique
 # The field has a length of 16bit. However we only use here 8bit for faster
@@ -236,7 +238,7 @@ class MsgT(object):
 
 # BGP,BGP4PLUS,BGP4PLUS_01 Subtypes
 # Deprecated in RFC6396
-BGP_ST = {
+BGP_ST = reverse_defaultdict({
     0:'BGP_NULL',
     1:'BGP_UPDATE',
     2:'BGP_PREF_UPDATE',
@@ -245,8 +247,7 @@ BGP_ST = {
     5:'BGP_OPEN',
     6:'BGP_NOTIFY',
     7:'BGP_KEEPALIVE',
-}
-dl += [BGP_ST]
+})
 
 @enum.unique
 class BgpSt(_BaseEnum):
@@ -263,11 +264,10 @@ class BgpSt(_BaseEnum):
 
 # TABLE_DUMP Subtypes
 # Defined in RFC6396
-TD_ST = {
+TD_ST = reverse_defaultdict({
     1:'AFI_IPv4',
     2:'AFI_IPv6',
-}
-dl += [AFI_T]
+})
 
 @enum.unique
 class TdSt(_BaseEnum):
@@ -278,15 +278,14 @@ class TdSt(_BaseEnum):
 
 # TABLE_DUMP_V2 Subtypes
 # Defined in RFC6396
-TD_V2_ST = {
+TD_V2_ST = reverse_defaultdict({
     1:'PEER_INDEX_TABLE',
     2:'RIB_IPV4_UNICAST',
     3:'RIB_IPV4_MULTICAST',
     4:'RIB_IPV6_UNICAST',
     5:'RIB_IPV6_MULTICAST',
     6:'RIB_GENERIC',
-}
-dl += [TD_V2_ST]
+})
 
 @enum.unique
 class TdV2St(_BaseEnum):
@@ -301,7 +300,7 @@ class TdV2St(_BaseEnum):
 
 # BGP4MP,BGP4MP_ET Subtypes
 # Defined in RFC6396
-BGP4MP_ST = {
+BGP4MP_ST = reverse_defaultdict({
     0:'BGP4MP_STATE_CHANGE',
     1:'BGP4MP_MESSAGE',
     2:'BGP4MP_ENTRY',             # Deprecated in RFC6396
@@ -310,8 +309,7 @@ BGP4MP_ST = {
     5:'BGP4MP_STATE_CHANGE_AS4',
     6:'BGP4MP_MESSAGE_LOCAL',
     7:'BGP4MP_MESSAGE_AS4_LOCAL',
-}
-dl += [BGP4MP_ST]
+})
 
 @enum.unique
 class Bgp4mpSt(_BaseEnum):
@@ -328,14 +326,14 @@ class Bgp4mpSt(_BaseEnum):
 
 # MRT Message Subtypes
 # Defined in RFC6396
-MSG_ST = {
+MSG_ST = collections.defaultdict(lambda: dict(), {
     9:BGP_ST,
     10:BGP_ST,
     12:AFI_T,
     13:TD_V2_ST,
     16:BGP4MP_ST,
     17:BGP4MP_ST,
-}
+})
 
 @enum.unique
 # The field has a length of 16bit. However we only use here 8bit for faster
@@ -359,7 +357,7 @@ MsgSt.bgp4mp_st17.enum = Bgp4mpSt
 
 # BGP FSM States
 # Defined in RFC4271
-BGP_FSM = {
+BGP_FSM = reverse_defaultdict({
     1:'Idle',
     2:'Connect',
     3:'Active',
@@ -368,8 +366,7 @@ BGP_FSM = {
     6:'Established',
     7:'Clearing',    # Used only in quagga?
     8:'Deleted',     # Used only in quagga?
-}
-dl += [BGP_FSM]
+})
 
 @enum.unique
 class BgpFsm(_BaseEnum):
@@ -386,7 +383,7 @@ class BgpFsm(_BaseEnum):
 
 # BGP Attribute Types
 # Defined in RFC4271
-BGP_ATTR_T = {
+BGP_ATTR_T = reverse_defaultdict({
     0:'Reserved',
     1:'ORIGIN',
     2:'AS_PATH',
@@ -408,8 +405,7 @@ BGP_ATTR_T = {
     18:'AS4_AGGREGATOR',       # Defined in RFC6793
     26:'AIGP',                 # Defined in RFC7311
     128:'ATTR_SET',            # Defined in RFC6368
-}
-dl += [BGP_ATTR_T]
+})
 
 @enum.unique
 class BgpAttrT(_BaseEnum):
@@ -460,12 +456,11 @@ class BgpAttrT(_BaseEnum):
 
 # BGP ORIGIN Types
 # Defined in RFC4271
-ORIGIN_T = {
+ORIGIN_T = reverse_defaultdict({
     0:'IGP',
     1:'EGP',
     2:'INCOMPLETE',
-}
-dl += [ORIGIN_T]
+})
 
 @enum.unique
 class OriginT(_BaseEnum):
@@ -477,13 +472,12 @@ class OriginT(_BaseEnum):
 
 # BGP AS_PATH Types
 # Defined in RFC4271
-AS_PATH_SEG_T = {
+AS_PATH_SEG_T = reverse_defaultdict({
     1:'AS_SET',
     2:'AS_SEQUENCE',
     3:'AS_CONFED_SEQUENCE', # Defined in RFC5065
     4:'AS_CONFED_SET',      # Defined in RFC5065
-}
-dl += [AS_PATH_SEG_T]
+})
 
 @enum.unique
 class AsPathSegT(_BaseEnum):
@@ -496,13 +490,12 @@ class AsPathSegT(_BaseEnum):
 
 # Reserved BGP COMMUNITY Types
 # Defined in RFC1997
-COMM_T = {
+COMM_T = reverse_defaultdict({
     0xffffff01:'NO_EXPORT',
     0xffffff02:'NO_ADVERTISE',
     0xffffff03:'NO_EXPORT_SCONFED',
     0xffffff04:'NO_PEER',           # Defined in RFC3765
-}
-dl += [COMM_T]
+})
 
 @enum.unique
 class CommT(_BaseEnum):
@@ -522,15 +515,14 @@ class CommT(_BaseEnum):
 
 # BGP Message Types
 # Defined in RFC4271
-BGP_MSG_T = {
+BGP_MSG_T = reverse_defaultdict({
     0:'Reserved',
     1:'OPEN',
     2:'UPDATE',
     3:'NOTIFICATION',
     4:'KEEPALIVE',
     5:'ROUTE-REFRESH', # Defined in RFC2918
-}
-dl += [BGP_MSG_T]
+})
 
 @enum.unique
 class BgpMsgT(_BaseEnum):
@@ -545,7 +537,7 @@ class BgpMsgT(_BaseEnum):
 
 # BGP Error Codes
 # Defined in RFC4271
-BGP_ERR_C = {
+BGP_ERR_C = reverse_defaultdict({
     0:'Reserved',
     1:'Message Header Error',
     2:'OPEN Message Error',
@@ -553,8 +545,7 @@ BGP_ERR_C = {
     4:'Hold Timer Expired',
     5:'Finite State Machine Error',
     6:'Cease',
-}
-dl += [BGP_ERR_C]
+})
 
 @enum.unique
 class BgpErrC(_BaseEnum):
@@ -577,13 +568,12 @@ class BgpErrC(_BaseEnum):
 
 # BGP Message Header Error Subcodes
 # Defined in RFC4271
-BGP_HDR_ERR_SC = {
+BGP_HDR_ERR_SC = reverse_defaultdict({
     0:'Reserved',
     1:'Connection Not Synchronized',
     2:'Bad Message Length',
     3:'Bad Message Type',
-}
-dl += [BGP_HDR_ERR_SC]
+})
 
 @enum.unique
 class BgpHdrErrSc(_BaseEnum):
@@ -600,7 +590,7 @@ BgpHdrErrSc.bad_msg_type.nice = "Bad Message Type"
 
 # OPEN Message Error Subcodes
 # Defined in RFC4271
-BGP_OPEN_ERR_SC = {
+BGP_OPEN_ERR_SC = reverse_defaultdict({
     0:'Reserved',
     1:'Unsupported Version Number',
     2:'Bad Peer AS',
@@ -609,8 +599,7 @@ BGP_OPEN_ERR_SC = {
     5:'[Deprecated]',
     6:'Unacceptable Hold Time',
     7:'Unsupported Capability',         # Defined in RFC5492
-}
-dl += [BGP_OPEN_ERR_SC]
+})
 
 @enum.unique
 class BgpOpenErrSc(_BaseEnum):
@@ -635,7 +624,7 @@ class BgpOpenErrSc(_BaseEnum):
 
 # UPDATE Message Error Subcodes
 # Defined in RFC4271
-BGP_UPDATE_ERR_SC = {
+BGP_UPDATE_ERR_SC = reverse_defaultdict({
     0:'Reserved',
     1:'Malformed Attribute List',
     2:'Unrecognized Well-known Attribute',
@@ -648,8 +637,7 @@ BGP_UPDATE_ERR_SC = {
     9:'Optional Attribute Error',
     10:'Invalid Network Field',
     11:'Malformed AS_PATH',
-}
-dl += [BGP_UPDATE_ERR_SC]
+})
 
 @enum.unique
 class BgpUpdateErrSc(_BaseEnum):
@@ -682,13 +670,12 @@ class BgpUpdateErrSc(_BaseEnum):
 
 # BGP Finite State Machine Error Subcodes
 # Defined in RFC6608
-BGP_FSM_ERR_SC = {
+BGP_FSM_ERR_SC = reverse_defaultdict({
     0:'Unspecified Error',
     1:'Receive Unexpected Message in OpenSent State',
     2:'Receive Unexpected Message in OpenConfirm State',
     3:'Receive Unexpected Message in Established State',
-}
-dl += [BGP_FSM_ERR_SC]
+})
 
 @enum.unique
 class BgpFsmErrSc(_BaseEnum):
@@ -705,7 +692,7 @@ class BgpFsmErrSc(_BaseEnum):
 
 # BGP Cease NOTIFICATION Message Subcodes
 # Defined in RFC4486
-BGP_CEASE_ERR_SC = {
+BGP_CEASE_ERR_SC = reverse_defaultdict({
     0:'Reserved',
     1:'Maximum Number of Prefixes Reached',
     2:'Administrative Shutdown',
@@ -715,8 +702,7 @@ BGP_CEASE_ERR_SC = {
     6:'Other Configuration Change',
     7:'Connection Collision Resolution',
     8:'Out of Resources',
-}
-dl += [BGP_CEASE_ERR_SC]
+})
 
 @enum.unique
 class BgpCeaseErrSc(_BaseEnum):
@@ -742,14 +728,14 @@ class BgpCeaseErrSc(_BaseEnum):
 
 
 # BGP Error Subcodes
-BGP_ERR_SC = {
+BGP_ERR_SC = collections.defaultdict(lambda: dict(), {
     1:BGP_HDR_ERR_SC,
     2:BGP_UPDATE_ERR_SC,
     3:BGP_OPEN_ERR_SC,
     4:BGP_UPDATE_ERR_SC,
     5:BGP_FSM_ERR_SC,
     6:BGP_CEASE_ERR_SC,
-}
+})
 
 class BgpErrSc(_BaseEnum):
     """BGP Error Subcodes."""
@@ -770,12 +756,11 @@ BgpErrSc.bgp_cease_err_sc.enum = BgpCeaseErrSc
 
 # BGP OPEN Optional Parameter Types
 # Defined in RFC5492
-BGP_OPT_PARAMS_T = {
+BGP_OPT_PARAMS_T = reverse_defaultdict({
     0:'Reserved',
     1:'Authentication', # Deprecated
     2:'Capabilities',
-}
-dl += [BGP_OPT_PARAMS_T]
+})
 
 @enum.unique
 class BgpOptParamsT(_BaseEnum):
@@ -787,7 +772,7 @@ class BgpOptParamsT(_BaseEnum):
 
 # Capability Codes
 # Defined in RFC5492
-BGP_CAP_C = {
+BGP_CAP_C = reverse_defaultdict({
     0:'Reserved',
     1:'Multiprotocol Extensions for BGP-4',                     # Defined in RFC2858
     2:'Route Refresh Capability for BGP-4',                     # Defined in RFC2918
@@ -802,8 +787,7 @@ BGP_CAP_C = {
     69:'ADD-PATH Capability',                                   # draft-ietf-idr-add-paths
     70:'Enhanced Route Refresh Capability',                     # draft-keyur-bgp-enhanced-route-refresh
     71:'Long-Lived Graceful Restart (LLGR) Capability',         # draft-uttaro-idr-bgp-persistence
-}
-dl += [BGP_CAP_C]
+})
 
 @enum.unique
 class BgpCapC(_BaseEnum):
@@ -840,10 +824,9 @@ class BgpCapC(_BaseEnum):
 
 # Outbound Route Filtering Capability
 # Defined in RFC5291
-ORF_T = {
+ORF_T = reverse_defaultdict({
     64:'Address Prefix ORF', # Defined in RFC5292
-}
-dl += [ORF_T]
+})
 
 @enum.unique
 class OrfT(_BaseEnum):
@@ -851,13 +834,11 @@ class OrfT(_BaseEnum):
     address_prefix_orf = (64, # Defined in RFC5292
         "Address Prefix ORF")
 
-
-ORF_SEND_RECV = {
+ORF_SEND_RECV = reverse_defaultdict({
     1:'Receive',
     2:'Send',
     3:'Both',
-}
-dl += [ORF_SEND_RECV]
+})
 
 @enum.unique
 class OrfSendRecv(_BaseEnum):
@@ -867,12 +848,11 @@ class OrfSendRecv(_BaseEnum):
 
 
 # AS Number Representation
-AS_REP = {
+AS_REP = reverse_defaultdict({
     1:'asplain',
     2:'asdot+',
     3:'asdot',
-}
-dl += [AS_REP]
+})
 
 @enum.unique
 class AsRep(_BaseEnum):
@@ -881,19 +861,6 @@ class AsRep(_BaseEnum):
     asdot_plus = 2
     asdot = 3
 
-# reverse the keys and values of dictionaries above
-for d in dl:
-    for k in list(d.keys()):
-        d[d[k]] = k
-
-# a function to get a value by specified keys from dictionaries above
-def val_dict(d, *args):
-    k = args[0]
-    if k in d:
-        if isinstance(d[k], dict) and len(args) > 1:
-            return val_dict(d[k], *args[1:])
-        return d[k]
-    return 'Unknown'
 
 # MPLS Label
 LBL_BOTTOM    = 0x01     # Defined in RFC3032
@@ -1371,9 +1338,9 @@ class BgpMessage(Base):
         self.data = self.val_str(buf, self.len - self.p)
 
     def unpack_route_refresh(self, buf):
-        self.afi = AfiT(self.val_num(buf, 2))
+        self.afi = self.val_num(buf, 2)
         self.rsvd = self.val_num(buf, 1)
-        self.safi = SafiT(self.val_num(buf, 1))
+        self.safi = self.val_num(buf, 1)
 
 class OptParams(Base):
     __slots__ = ['type', 'len', 'cap_type', 'cap_len', 'multi_ext', 'orf',
